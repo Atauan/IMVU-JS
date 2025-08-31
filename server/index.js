@@ -18,6 +18,27 @@ app.use(express.static(path.join(__dirname, '..')));
 // Initialize IMVU client
 const imvuClient = new IMVUClient();
 
+// Login to IMVU API on startup
+async function initializeIMVU() {
+    try {
+        // You'll need to set these environment variables or replace with actual credentials
+        const username = process.env.IMVU_USERNAME || 'your_username';
+        const password = process.env.IMVU_PASSWORD || 'your_password';
+        
+        if (username === 'your_username' || password === 'your_password') {
+            console.warn('⚠️  IMVU credentials not configured. Please set IMVU_USERNAME and IMVU_PASSWORD environment variables.');
+            console.warn('⚠️  Some API features may not work without authentication.');
+            return;
+        }
+        
+        await imvuClient.login(username, password);
+        console.log('✅ IMVU API authentication successful');
+    } catch (error) {
+        console.error('❌ Failed to authenticate with IMVU API:', error.message);
+        console.warn('⚠️  Some API features may not work without authentication.');
+    }
+}
+
 // Routes
 app.post('/api/avatar', async (req, res) => {
     try {
@@ -66,7 +87,10 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
 
-app.listen(port, () => {
+app.listen(port, async () => {
     console.log(`🚀 Server running at http://localhost:${port}`);
     console.log(`📡 API available at http://localhost:${port}/api`);
+    
+    // Initialize IMVU authentication
+    await initializeIMVU();
 });

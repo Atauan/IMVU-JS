@@ -25,6 +25,60 @@ export class IMVUClient {
 
         this.authenticated = false;
         this.sauce = '';
+        this.username = '';
+        this.password = '';
+    }
+
+    async login(username, password) {
+        try {
+            console.log(`Attempting to login with username: ${username}`);
+            
+            // Store credentials
+            this.username = username;
+            this.password = password;
+            
+            // Step 1: Initial login request
+            const loginResponse = await this.http.post('/login', {
+                username: username,
+                password: password
+            });
+            
+            if (loginResponse.data.status === 'failure') {
+                throw new Error(`Login failed: ${loginResponse.data.message}`);
+            }
+            
+            // Step 2: Get authentication token (sauce)
+            const meResponse = await this.http.get('/login/me');
+            
+            if (meResponse.data.status === 'failure') {
+                throw new Error(`Failed to get auth token: ${meResponse.data.message}`);
+            }
+            
+            // Extract sauce token
+            if (meResponse.data.denormalized && meResponse.data.id) {
+                const userData = meResponse.data.denormalized[meResponse.data.id];
+                this.sauce = userData.data.sauce || '';
+            }
+            
+            if (!this.sauce) {
+                throw new Error('Failed to obtain authentication token');
+            }
+            
+            // Set authentication headers for future requests
+            this.http.defaults.headers.common['x-imvu-sauce'] = this.sauce;
+            this.http.defaults.headers.common['x-imvu-application'] = 'imvu-web';
+            
+            this.authenticated = true;
+            console.log('Successfully authenticated with IMVU API');
+            
+            return true;
+            
+        } catch (error) {
+            console.error('Login error:', error);
+            this.authenticated = false;
+            this.sauce = '';
+            throw error;
+        }
     }
 
     async request(url, config = {}) {
